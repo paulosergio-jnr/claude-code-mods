@@ -14,6 +14,12 @@
       "description": "Animated pane showing the orchestrator, its subagents, who is working and the messages between them",
       "version": "0.1.0",
       "category": "productivity"
+    },
+    {
+      "name": "usage-band",
+      "source": "./mods/usage-band",
+      "description": "Band above the prompt showing context %, tools, skills and MCP share of context, and session and weekly limits, with yellow and red usage indicators",
+      "version": "0.1.0"
     }
   ]
 }

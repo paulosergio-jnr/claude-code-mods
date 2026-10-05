@@ -1,0 +1,43 @@
+{
+  "name": "usage-band",
+  "version": "0.1.0",
+  "description": "Band above the prompt showing context %, tools, skills and MCP share of context, and session and weekly limits, with yellow and red usage indicators",
+  "author": {
+    "name": "Paulo Sergio Pereira Junior"
+  },
+  "license": "Apache-2.0",
+  "repository": "https://github.com/paulosergio-jnr/claude-code-mods",
+  "userConfig": {
+    "showTools": {
+      "type": "boolean",
+      "title": "Show tools",
+      "description": "Loaded tools share of the context window.",
+      "default": true
+    },
+    "showSkills": {
+      "type": "boolean",
+      "title": "Show skills",
+      "description": "Skills listed in context and their share of the context window.",
+      "default": true
+    },
+    "showMcp": {
+      "type": "boolean",
+      "title": "Show MCP",
+      "description": "MCP tools and the share of the context window the loaded ones use.",
+      "default": true
+    },
+    "showSession": {
+      "type": "boolean",
+      "title": "Show session limit",
+      "description": "The five-hour rate-limit window and when it resets (subscriptions only).",
+      "default": true
+    },
+    "showWeek": {
+      "type": "boolean",
+      "title": "Show weekly limit",
+      "description": "The seven-day rate-limit window and when it resets (subscriptions only).",
+      "default": true
+    }
+  },
+  "types": "./types/index.d.ts"
+}
