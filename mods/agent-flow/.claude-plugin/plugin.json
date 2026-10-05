@@ -1,0 +1,24 @@
+{
+  "name": "agent-flow",
+  "version": "0.1.0",
+  "description": "Animated pane showing the orchestrator, its subagents, who is working and the messages between them",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Paulo Sergio Pereira Junior"
+  },
+  "license": "Apache-2.0",
+  "repository": "https://github.com/paulosergio-jnr/claude-code-mods",
+  "userConfig": {
+    "autoOpen": {
+      "type": "string",
+      "title": "Open the pane automatically",
+      "description": "never: only /agent-flow opens it. on-subagent: when the first subagent spawns. always: also when a session starts.",
+      "options": [
+        "never",
+        "on-subagent",
+        "always"
+      ],
+      "default": "on-subagent"
+    }
+  }
+}

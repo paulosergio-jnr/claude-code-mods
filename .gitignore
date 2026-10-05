@@ -1,0 +1,7 @@
+# Types the Claude Code engine lays beside each mod when it loads it
+mods/*/.claude-plugin/types/
+
+node_modules/
+.DS_Store
+.idea/
+*.log

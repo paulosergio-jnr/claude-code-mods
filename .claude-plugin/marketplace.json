@@ -1,0 +1,19 @@
+{
+  "name": "claude-code-mods",
+  "owner": {
+    "name": "Paulo Sergio Pereira Junior"
+  },
+  "metadata": {
+    "description": "Open-source mods for Claude Code: panes, bands, status lines, toasts and hooks, written as plugins of function hooks.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "agent-flow",
+      "source": "./mods/agent-flow",
+      "description": "Animated pane showing the orchestrator, its subagents, who is working and the messages between them",
+      "version": "0.1.0",
+      "category": "productivity"
+    }
+  ]
+}
