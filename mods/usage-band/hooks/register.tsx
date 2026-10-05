@@ -1,6 +1,6 @@
 import { atom, update, read } from 'claude-code'
 import type { Segment } from '../types'
-import type { EngineInterface, Register, SessionContextBreakdown, SessionRateLimit } from 'claude-code'
+import type { ContextCategory, EngineInterface, Register, SessionContextBreakdown, SessionRateLimit } from 'claude-code'
 
 const text = atom({ plugin: 'usage-band', key: 'text' } as const, null)
 
@@ -20,7 +20,8 @@ const levelOf = (percent: number): 'yellow' | 'red' | undefined => (percent >= 9
 const pct = (tokens: number, window: number): string =>
   window > 0 ? `${((tokens / window) * 100).toFixed(1)}%` : '–'
 
-type Counts = { tools: number; mcpTools: number }
+/** Schema tokens of the built-in tools and the loaded MCP tools. */
+export type Counted = { tools: number; mcp: number }
 
 export type Show = { tools: boolean; skills: boolean; mcp: boolean; session: boolean; week: boolean }
 
@@ -55,34 +56,69 @@ const windows = (limits: readonly SessionRateLimit[], show: Show): Segment[] => 
   return out
 }
 
-// Every figure but the tool count comes from the breakdown. The built-in tools
+const isSystemTools = (c: ContextCategory): boolean => c.kind === 'used' && /^system tools/i.test(c.name)
+
+// Tool and MCP schema tokens as a breakdown carries them.
+export const toolTokensOf = (b: SessionContextBreakdown): Counted => ({
+  tools: b.categories.filter(isSystemTools).reduce((s, c) => s + c.tokens, 0),
+  mcp: b.mcpTools.filter(t => t.isLoaded).reduce((s, t) => s + t.tokens, 0),
+})
+
+// Every figure comes from the breakdown. The built-in tools
 // are told apart by the row's name, the one place the engine's labels are read.
+// `counted` replaces the summary's estimated schema tokens with /context's
+// counted ones. Before the first response the total is an estimate too and
+// moves with them; after it the engine has reconciled the total to the API's.
 export function line(
   percent: number | undefined,
   b: SessionContextBreakdown | undefined,
-  n: Counts,
   limits: readonly SessionRateLimit[] = [],
   show: Show = ALL,
+  counted?: Counted,
 ): Segment[] {
-  const parts: Segment[] = [{ label: 'context', value: `${(percent ?? 0).toFixed(1)}%`, level: levelOf(percent ?? 0), color: COLORS.context }]
   const tail = windows(limits, show)
-  if (!b) return [...parts, ...tail]
+  if (!b) {
+    const p = percent ?? 0
+    return [{ label: 'context', value: `${p.toFixed(1)}%`, level: levelOf(p), color: COLORS.context }, ...tail]
+  }
 
   const max = b.rawMaxTokens
-  const toolTokens = b.categories.filter(c => c.kind === 'used' && /^system tools/i.test(c.name)).reduce((s, c) => s + c.tokens, 0)
-  const mcpTokens = b.mcpTools.filter(t => t.isLoaded).reduce((s, t) => s + t.tokens, 0)
+  const estimated = toolTokensOf(b)
+  const { tools: toolTokens, mcp: mcpTokens } = counted ?? estimated
+  const total = b.apiUsage ? b.totalTokens : b.totalTokens - estimated.tools - estimated.mcp + toolTokens + mcpTokens
+  const loaded = b.mcpTools.filter(t => t.isLoaded).length
+  const p = max > 0 ? (total / max) * 100 : (percent ?? 0)
 
+  const parts: Segment[] = [{ label: 'context', value: `${p.toFixed(1)}%`, level: levelOf(p), color: COLORS.context }]
   if (show.tools) parts.push({ label: 'tools', value: pct(toolTokens, max), color: COLORS.tools })
   if (show.skills) parts.push({ label: 'skills', value: `${b.skills?.includedSkills ?? 0} (${pct(b.skills?.tokens ?? 0, max)})`, color: COLORS.skills })
-  if (show.mcp) parts.push({ label: 'mcp', value: `${n.mcpTools} (${pct(mcpTokens, max)})`, color: COLORS.mcp })
+  if (show.mcp) parts.push({ label: 'mcp', value: `${loaded}/${b.mcpTools.length} (${pct(mcpTokens, max)})`, color: COLORS.mcp })
   parts.push(...tail)
   return parts
 }
 
+// What the tool schemas in the window are: changes when a deferred tool loads
+// or a server connects, and only then is a counted breakdown worth asking for.
+export const toolSetOf = (b: SessionContextBreakdown): string =>
+  [
+    ...b.categories.filter(c => /^system tools/i.test(c.name)).map(c => `${c.kind}:${c.tokens}`),
+    ...b.mcpTools.filter(t => t.isLoaded).map(t => t.name),
+  ].join('|')
+
+// The last counted schema tokens and the tool set they were counted for. A
+// module variable: a reload counts once more.
+let cache: { set: string; counted: Counted } | undefined
+
 async function draw($: EngineInterface, show: Show): Promise<void> {
-  const [usage, tools] = await Promise.all([$.session.usage({ breakdown: 'summary' }), $.tool.list()])
-  const mcpTools = tools.filter(t => t.mcp).length
-  await update($, text, () => line(usage.context.percent, usage.context.breakdown, { tools: tools.length - mcpTools, mcpTools }, usage.rateLimits, show))
+  const usage = await $.session.usage({ breakdown: 'summary' })
+  const b = usage.context.breakdown
+  // The summary estimates tool schemas well above what /context counts; count
+  // them as /context does (one request per tool) only when the set changed.
+  if (b && cache?.set !== toolSetOf(b)) {
+    const full = (await $.session.usage({ breakdown: 'full' })).context.breakdown
+    if (full) cache = { set: toolSetOf(b), counted: toolTokensOf(full) }
+  }
+  await update($, text, () => line(usage.context.percent, b, usage.rateLimits, show, cache?.counted))
 }
 
 // An option left unset, or stored as anything but false, stays on.
