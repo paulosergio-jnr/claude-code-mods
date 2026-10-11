@@ -19,7 +19,7 @@
       "name": "usage-band",
       "source": "./mods/usage-band",
       "description": "Band above the prompt showing context %, tools, skills and MCP share of context, and session and weekly limits, with yellow and red usage indicators",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }
