@@ -28,7 +28,7 @@ test('a subagent shows as working, then done, with its task and result', async (
     }
   })
   on('ui.panes', async () => ({ value: [] }) as never)
-  on('ui.open', async () => ({ isPlaced: true }) as never)
+  on('ui.open', async () => ({ value: { isPlaced: true } }) as never)
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'agent-flow', surface, ...PANE })
