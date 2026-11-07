@@ -204,12 +204,10 @@ export const register: Register = (on, options) => {
               {sep}
             </Text>
           ) : null}
+          {first ? seg(first) : null}
           {first ? (
-            <Button key="context" plain onPress={() => toggle($)}>
-              <Text color={first.color}>{first.label}</Text>
-              {' '}
-              <Text color={first.level}>{first.value}</Text>
-              <Text dimColor={!shown}>{' 🔍'}</Text>
+            <Button key="pane" plain onPress={() => toggle($)}>
+              <Text dimColor={!shown}>{' [?]'}</Text>
             </Button>
           ) : null}
           <Text wrap="truncate">
