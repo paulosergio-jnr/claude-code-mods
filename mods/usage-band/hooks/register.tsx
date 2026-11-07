@@ -209,7 +209,7 @@ export const register: Register = (on, options) => {
               <Text color={first.color}>{first.label}</Text>
               {' '}
               <Text color={first.level}>{first.value}</Text>
-              <Text dimColor>{shown ? ' [-]' : ' [+]'}</Text>
+              <Text dimColor={!shown}>{' 🔍'}</Text>
             </Button>
           ) : null}
           <Text wrap="truncate">

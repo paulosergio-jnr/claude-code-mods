@@ -1,6 +1,6 @@
 # usage-band
 
-A dim band above the prompt. Click `context` to open a side pane with the full breakdown, and click it again to close the pane.
+A dim band above the prompt. Click `context 🔍` to open a side pane with the full breakdown, and click it again to close the pane. The magnifier is dim while the pane is closed.
 
 Band:
 
