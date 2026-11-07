@@ -19,7 +19,7 @@
       "name": "usage-band",
       "source": "./mods/usage-band",
       "description": "Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-expand row for tools, skills and MCP share of context",
-      "version": "0.3.0"
+      "version": "1.0.0"
     }
   ]
 }
