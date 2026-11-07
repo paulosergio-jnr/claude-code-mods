@@ -1,6 +1,6 @@
 {
   "name": "threads",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Track open questions, doubts and ideas as threads in a side pane, per session or per project, with Claude-suggested threads",
   "author": {
     "name": "Paulo Sergio Pereira Junior"
