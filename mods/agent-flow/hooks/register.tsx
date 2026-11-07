@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { AgentNode, Flow, FlowKind } from '../types'
+import type { AgentNode, AgentState, Flow, FlowKind } from '../types'
 
 const PANE = 'agent-flow'
 const MAIN = 'main'
@@ -22,13 +22,31 @@ const keep = (text: string, max: number) => (text.length > max ? text.slice(0, m
 
 let flowSeq = 0
 
+const MAX_SEGMENTS = 150
+const KEEP_MS = 31 * 60_000 // a little more than the widest timeline window
+const MAX_TOKEN_LOG = 80
+
+// Closes the open stretch and opens `state` (or none) at `now`; the same state keeps going.
+function moveTo(a: AgentNode, state: AgentState | undefined, now: number): AgentNode {
+  const segments = a.segments ?? []
+  const last = segments[segments.length - 1]
+  if (last && last.to === undefined && last.state === state) return a
+  const closed = segments.map(s => (s.to === undefined ? { ...s, to: now } : s))
+  const next = state ? [...closed, { state, from: now }] : closed
+  return { ...a, segments: next.filter(s => (s.to ?? now) > now - KEEP_MS).slice(-MAX_SEGMENTS) }
+}
+
+// Waiting while a subagent works for it; thinking otherwise.
+const resting = (list: AgentNode[], id: string): AgentState =>
+  list.some(c => c.parentId === id && c.status === 'working') ? 'waiting' : 'thinking'
+
 function patch($: EngineInterface, id: string, fn: (a: AgentNode) => AgentNode) {
   return update($, agents, list => list.map(a => (a.id === id ? fn(a) : a)))
 }
 
 async function flow($: EngineInterface, from: string, to: string, kind: FlowKind, text: string) {
   const now = await $.clock.now()
-  const one: Flow = { id: `${now}-${flowSeq++}`, from, to, kind, text: clip(text) }
+  const one: Flow = { id: `${now}-${flowSeq++}`, from, to, kind, text: clip(text), at: now }
   await update($, flows, list => [...list, one].slice(-60))
 }
 
@@ -58,8 +76,9 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.start', async ($, e, next) => {
+    const now = await $.clock.now()
     await patch($, MAIN, a => ({
-      ...a,
+      ...moveTo(a, 'thinking', now),
       status: 'working',
       tool: undefined,
       prompt: e.text ? keep(e.text, PROMPT_MAX) : a.prompt,
@@ -85,8 +104,10 @@ export const register: Register = (on, options) => {
       prompt: keep(e.prompt, PROMPT_MAX),
       background: e.background,
       startedAt: now,
+      segments: [{ state: 'thinking', from: now }],
     }
     await update($, agents, list => [...list.filter(a => a.id !== node.id), node])
+    await patch($, parent, a => (a.status === 'working' ? moveTo(a, 'waiting', now) : a))
     await flow($, parent, node.id, 'task', e.prompt)
 
     if (autoOpen !== 'never' && !(await $.ui.panes()).some(p => p.id === PANE)) void openPane($).catch(() => undefined)
@@ -98,8 +119,9 @@ export const register: Register = (on, options) => {
     if (!(await known($, id))) return next(e)
 
     const skill = e.tool === 'Skill' ? e.skill : undefined
+    const began = await $.clock.now()
     await patch($, id, a => ({
-      ...a,
+      ...moveTo(a, 'acting', began),
       status: 'working',
       tool: e.tool,
       tools: a.tools + 1,
@@ -107,7 +129,9 @@ export const register: Register = (on, options) => {
       skills: skill && !a.skills?.includes(skill) ? [...(a.skills ?? []), skill] : a.skills,
     }))
     const ran = await next(e)
-    await patch($, id, a => (a.tool === e.tool ? { ...a, tool: undefined } : a))
+    const ended = await $.clock.now()
+    const list = await read($, agents)
+    await patch($, id, a => (a.tool === e.tool ? { ...moveTo(a, resting(list, id), ended), tool: undefined } : a))
     return ran
   })
 
@@ -119,6 +143,7 @@ export const register: Register = (on, options) => {
     const answered = yield* next(e)
     const usage = answered.usage
     if (usage) {
+      const at = await $.clock.now()
       const input = usage.input_tokens + usage.cache_read_input_tokens + usage.cache_creation_input_tokens
       await patch($, id, a => ({
         ...a,
@@ -126,6 +151,9 @@ export const register: Register = (on, options) => {
         tokensIn: (a.tokensIn ?? 0) + input,
         tokensOut: (a.tokensOut ?? 0) + usage.output_tokens,
         cacheRead: (a.cacheRead ?? 0) + usage.cache_read_input_tokens,
+        tokenLog: [...(a.tokenLog ?? []), { t: at, out: usage.output_tokens }]
+          .filter(x => x.t > at - KEEP_MS)
+          .slice(-MAX_TOKEN_LOG),
       }))
     }
     return answered
@@ -147,19 +175,33 @@ export const register: Register = (on, options) => {
     const node = list.find(a => a.id === id)
     if (!node) return next(e)
 
+    const now = await $.clock.now()
     if (id === MAIN) {
-      await patch($, MAIN, a => ({ ...a, status: 'idle', tool: undefined, answer: keep(e.answer, ANSWER_MAX) }))
+      await patch($, MAIN, a => ({
+        ...moveTo(a, 'waiting', now),
+        status: 'idle',
+        tool: undefined,
+        answer: keep(e.answer, ANSWER_MAX),
+      }))
     } else {
-      const now = await $.clock.now()
       const isOk = e.reason === 'answer'
       await patch($, id, a => ({
-        ...a,
+        ...moveTo(a, undefined, now),
         status: isOk ? 'done' : 'failed',
         tool: undefined,
         endedAt: now,
         answer: keep(e.answer || e.reason, ANSWER_MAX),
       }))
       await flow($, id, node.parentId ?? MAIN, 'result', e.answer || e.reason)
+
+      // The parent stops waiting once its last working subagent is done.
+      const parent = node.parentId ?? MAIN
+      const after = await read($, agents)
+      await patch($, parent, a => {
+        const last = a.segments?.[(a.segments?.length ?? 1) - 1]
+        const isWaiting = a.status === 'working' && last?.to === undefined && last?.state === 'waiting'
+        return isWaiting && resting(after, parent) === 'thinking' ? moveTo(a, 'thinking', now) : a
+      })
     }
     return next(e)
   })
@@ -167,12 +209,13 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const list = await read($, agents)
     const recent = await read($, flows)
+    const now = await $.clock.now()
 
     if (e.surface === 'terminal' || e.surface === 'desktop') {
       const { Box, Client, Button } = $.ui.resolve(e)
       return (
-        <Box flexDirection="column">
-          <Client key="graph" module="./graph.tsx" props={{ agents: list, flows: recent }} />
+        <Box flexDirection="column" flexGrow={1}>
+          <Client key="graph" module="./graph.tsx" props={{ agents: list, flows: recent, now }} flexGrow={1} />
           <Box marginTop={1}>
             <Button key="clear" onPress={async () => {
               await update($, agents, all => all.filter(a => a.id === MAIN || a.status === 'working'))
