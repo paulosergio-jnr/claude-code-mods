@@ -1,13 +1,19 @@
 {
   "name": "usage-band",
-  "version": "0.1.1",
-  "description": "Band above the prompt showing context %, tools, skills and MCP share of context, and session and weekly limits, with yellow and red usage indicators",
+  "version": "0.3.0",
+  "description": "Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-expand row for tools, skills and MCP share of context",
   "author": {
     "name": "Paulo Sergio Pereira Junior"
   },
   "license": "Apache-2.0",
   "repository": "https://github.com/paulosergio-jnr/claude-code-mods",
   "userConfig": {
+    "showCache": {
+      "type": "boolean",
+      "title": "Show cache",
+      "description": "Share of the last response's input read from the prompt cache, and the cache read and write token counts.",
+      "default": true
+    },
     "showTools": {
       "type": "boolean",
       "title": "Show tools",

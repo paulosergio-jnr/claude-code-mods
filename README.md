@@ -22,7 +22,7 @@ Or from inside a session: `/plugin marketplace add paulosergio-jnr/claude-code-m
 | Mod | What it does |
 | --- | --- |
 | [agent-flow](mods/agent-flow) | Animated pane showing the orchestrator, its subagents, who is working and the messages between them. |
-| [usage-band](mods/usage-band) | Band above the prompt showing context %, tools, skills and MCP share of context, and session and weekly limits, with yellow and red usage indicators. |
+| [usage-band](mods/usage-band) | Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-expand row for tools, skills and MCP share of context |
 
 ## Layout
 
