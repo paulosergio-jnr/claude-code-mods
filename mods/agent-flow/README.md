@@ -2,12 +2,12 @@
 
 An animated pane showing the orchestrator, its subagents, who is working, and the messages between them.
 
-- **Tree:** each agent shows a status badge, its current tool, its model and its token use. Wires animate when a task goes down to a subagent or a result comes back up.
-- **Details:** click a row, or use ↑/↓ and Enter, to see an agent's type, model, tokens (with cache reads), tool counts, skills, task and result.
-- **Interactions log:** recent tasks, results and messages between agents.
-- **clear finished:** removes finished subagents and empties the log.
+- **Timeline:** one line per agent, every agent always listed: its name on the left, the tool or state on the right. The time axis is the run itself, from its first activity to its last event, fitted to the pane width, so it redraws when something happens rather than scrolling with the clock. Each line is coloured by what the agent was doing: orange thinking, blue acting (running a tool), green waiting (idle, or for its subagents). A `●` drops from a parent to where a subagent starts (`╰`), and the result climbs back (`╯`, `◆`) where it ends. Spinners, packets and the shimmer on running agents keep moving between events.
+- **Summary rows:** at the foot of the pane, one compact row per agent: badge and name, a bar of how long it ran against the whole run (filled part coloured by its thinking, acting and waiting time, the rest dotted), its tool or `done 12s`, and its tokens in and out (`↑12k` `↓2k`).
+- **Details:** click a lane or a row, or use ↑/↓ and Enter, to open a strip with the agent's type, model, tokens (with cache reads), tool counts, skills, task and result. It sits between the timeline and the summary rows, and shows only while an agent is selected; otherwise that space is left empty.
+- **clear finished:** removes finished subagents and the interactions drawn between them.
 
-Open the pane any time with `/agent-flow`. Terminal and desktop get the animated view; VS Code and mobile get a plain list.
+Open the pane any time with `/agent-flow`. Terminal and desktop get the animated view (below 80 columns the timeline narrows to a short bar per lane); VS Code and mobile get a plain list.
 
 ## Settings
 
