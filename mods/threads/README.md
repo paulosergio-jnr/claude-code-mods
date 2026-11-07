@@ -2,6 +2,8 @@
 
 Keep track of the open questions, doubts and ideas that get lost in a long conversation. Threads adds a side pane with two lists: **Project** threads, saved in `.claude/threads.local.json`, and **Session** threads, which belong to one conversation: they come back with `claude --resume` and disappear on `/clear`. Claude can also propose threads it sees left open; they wait in a **Suggested** block until you accept (`[+]`) or dismiss (`[-]`) them.
 
+![threads](../../docs/threads.png)
+
 ## Use
 
 - `/threads` shows or hides the pane. Click or Tab to a row to select it; the buttons at the end of a row move it between scopes (`[↑]` promotes a session thread to the project, `[↓]` demotes it).
