@@ -12,7 +12,7 @@
       "name": "agent-flow",
       "source": "./mods/agent-flow",
       "description": "Animated timeline pane of the orchestrator and its subagents: who is thinking, acting or waiting, and the messages between them",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "category": "productivity"
     },
     {

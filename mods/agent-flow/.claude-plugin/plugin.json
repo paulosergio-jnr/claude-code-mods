@@ -1,6 +1,6 @@
 {
   "name": "agent-flow",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Animated timeline pane of the orchestrator and its subagents: who is thinking, acting or waiting, and the messages between them",
   "types": "./types/index.d.ts",
   "author": {
