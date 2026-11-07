@@ -1,7 +1,7 @@
 {
   "name": "usage-band",
   "version": "1.0.0",
-  "description": "Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-expand row for tools, skills and MCP share of context",
+  "description": "Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-open side pane that breaks down context, cache, tools, skills and MCP",
   "author": {
     "name": "Paulo Sergio Pereira Junior"
   },
@@ -11,25 +11,25 @@
     "showCache": {
       "type": "boolean",
       "title": "Show cache",
-      "description": "Share of the last response's input read from the prompt cache, and the cache read and write token counts.",
+      "description": "Share of the last response's input read from the prompt cache on the band, and the cache read and write token counts in the pane.",
       "default": true
     },
     "showTools": {
       "type": "boolean",
       "title": "Show tools",
-      "description": "Loaded tools share of the context window.",
+      "description": "Pane section: the tools in the window and their share of it.",
       "default": true
     },
     "showSkills": {
       "type": "boolean",
       "title": "Show skills",
-      "description": "Skills listed in context and their share of the context window.",
+      "description": "Pane section: the skills listed in context and their share of the window.",
       "default": true
     },
     "showMcp": {
       "type": "boolean",
       "title": "Show MCP",
-      "description": "MCP tools and the share of the context window the loaded ones use.",
+      "description": "Pane section: the MCP tools by server and the share of the window the loaded ones use.",
       "default": true
     },
     "showSession": {
