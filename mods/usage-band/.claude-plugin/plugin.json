@@ -1,6 +1,6 @@
 {
   "name": "usage-band",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-open side pane that breaks down context, cache, tools, skills and MCP",
   "author": {
     "name": "Paulo Sergio Pereira Junior"
