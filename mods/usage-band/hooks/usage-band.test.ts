@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import type { SessionContextBreakdown } from 'claude-code'
-import { line, showOf, toolSetOf } from './register'
+import { line, modelName, showOf, split, toolSetOf } from './register'
 
 const breakdown = {
   rawMaxTokens: 200_000,
@@ -102,5 +102,28 @@ test('options choose which entries show, and context stays', () => {
   expect(text).toBe('context 42.0% · skills 25 (1.0%) · session 30.0%')
   const off = showOf({ showTools: false, showSkills: false, showMcp: false, showSession: false, showWeek: false })
   expect(plain(line(42, breakdown, [{ kind: 'five_hour', percentUsed: 30 }], off))).toBe('context 42.0%')
-  expect(showOf({})).toEqual({ tools: true, skills: true, mcp: true, session: true, week: true })
+  expect(showOf({})).toEqual({ cache: true, tools: true, skills: true, mcp: true, session: true, week: true })
+})
+
+test('split keeps context, session and week in the band; tools, skills and mcp go to the extra row', () => {
+  const { main, extra } = split(line(42, breakdown, [{ kind: 'five_hour', percentUsed: 10 }, { kind: 'seven_day', percentUsed: 5 }]))
+  expect(main.map(s => s.label)).toEqual(['context', 'session', 'week'])
+  expect(extra.map(s => s.label)).toEqual(['tools', 'skills', 'mcp'])
+})
+
+test('modelName drops the claude- prefix and a date suffix', () => {
+  expect(modelName('claude-sonnet-5-5')).toBe('sonnet-5-5')
+  expect(modelName('claude-haiku-4-5-20251001')).toBe('haiku-4-5')
+})
+
+test('cache shows the hit rate on the band and the token counts in the extra row', () => {
+  const withUsage = {
+    ...breakdown,
+    apiUsage: { input_tokens: 1_000, cache_read_input_tokens: 94_000, cache_creation_input_tokens: 5_000, output_tokens: 10 },
+  } as unknown as SessionContextBreakdown
+  const { main, extra } = split(line(42, withUsage))
+  expect(main.map(s => `${s.label} ${s.value}`)).toEqual(['context 42.0%', 'cache 94%'])
+  expect(extra.filter(s => s.label.startsWith('cache')).map(s => `${s.label} ${s.value}`)).toEqual(['cache read 94k', 'cache write 5k'])
+  expect(line(42, withUsage, [], { ...showOf({}), cache: false }).some(s => s.label.startsWith('cache'))).toBe(false)
+  expect(line(42, breakdown).some(s => s.label.startsWith('cache'))).toBe(false)
 })
