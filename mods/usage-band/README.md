@@ -1,10 +1,18 @@
 # usage-band
 
+```
+/plugin install usage-band --marketplace paulosergio-jnr/claude-code-mods
+```
+
 A dim band above the prompt. Click the `[?]` after `context` to open a side pane with the full breakdown, and click it again to close the pane. The sign is purple, dimmed while the pane is closed.
 
 Band:
 
-![usage-band collapsed](../../docs/usage-band-collapsed.png)
+![usage-band band](../../docs/usage-band-collapsed.png)
+
+Pane, with every section open and one MCP server opened:
+
+![usage-band pane](../../docs/usage-band-expanded.png)
 
 The pane has a section for each of these. All start folded except Context, and a click on a heading opens or folds it. Opening Skills or MCP shows its groups (a source, a plugin or a server), each folded too, so a second click opens one:
 
