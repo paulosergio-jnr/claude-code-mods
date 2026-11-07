@@ -205,9 +205,10 @@ export const register: Register = (on, options) => {
             </Text>
           ) : null}
           {first ? seg(first) : null}
+          {first ? <Text>{' '}</Text> : null}
           {first ? (
             <Button key="pane" plain onPress={() => toggle($)}>
-              <Text dimColor={!shown}>{' [?]'}</Text>
+              <Text color={COLORS.context} dimColor={!shown}>{'[?]'}</Text>
             </Button>
           ) : null}
           <Text wrap="truncate">
