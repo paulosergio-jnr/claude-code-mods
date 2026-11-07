@@ -185,6 +185,10 @@ test('with doneRetention delete, a finished thread waits for 30 seconds and Undo
   await ui.unmount()
 })
 
+// The form's Inputs get new keys each time it opens; the first is the title, the second the note.
+const field = async (ui: { findAll: (q: { type: string }) => Promise<{ key: string | undefined }[]> }, n: number) =>
+  (await ui.findAll({ type: 'Input' }))[n]?.key as string
+
 test('the add form saves a thread with a kind, and cancel leaves nothing behind', async ($, on) => {
   engine(on)
   await $.session.start(START)
@@ -192,18 +196,18 @@ test('the add form saves a thread with a kind, and cancel leaves nothing behind'
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await ui.press({ key: 'add-session' })
   await ui.press({ key: 'kind-doubt' })
-  await ui.input({ key: 'title', text: 'Is the lock stale-safe?', kind: 'change' })
+  await ui.input({ key: await field(ui, 0), text: 'Is the lock stale-safe?', kind: 'change' })
   await ui.press({ key: 'save' })
   expect(await ui.find({ type: 'Text', text: /Is the lock stale-safe\?/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /!/ })).toBeDefined()
 
   // Enter in the title field saves too.
   await ui.press({ key: 'add-session' })
-  await ui.input({ key: 'title', text: 'Saved by Enter' })
+  await ui.input({ key: await field(ui, 0), text: 'Saved by Enter' })
   expect(await ui.find({ type: 'Text', text: /Saved by Enter/ })).toBeDefined()
 
   await ui.press({ key: 'add-project' })
-  await ui.input({ key: 'title', text: 'Never saved', kind: 'change' })
+  await ui.input({ key: await field(ui, 0), text: 'Never saved', kind: 'change' })
   await ui.press({ key: 'cancel' })
   expect(await ui.find({ type: 'Text', text: /Never saved/ })).toBeUndefined()
   await ui.unmount()
@@ -244,4 +248,22 @@ test('a /clear forgets the saved session threads', async ($, on) => {
 
   await $.session.end({ reason: 'clear', sessionId: 'sess-1', resume: {} } as never)
   expect(kept.has('session:sess-1')).toBe(false)
+})
+
+test('a form opens empty each time, with Inputs the surface has not typed into', async ($, on) => {
+  engine(on)
+  await $.session.start(START)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'add-session' })
+  const first = [await field(ui, 0), await field(ui, 1)]
+  await ui.input({ key: first[1] as string, text: 'a note', kind: 'change' })
+  await ui.input({ key: first[0] as string, text: 'With a note' })
+
+  await ui.press({ key: 'add-session' })
+  const second = [await field(ui, 0), await field(ui, 1)]
+  expect(second[0]).not.toBe(first[0])
+  expect(second[1]).not.toBe(first[1])
+  expect((await ui.find({ key: second[1] as string }))?.text ?? '').toBe('')
+  await ui.unmount()
 })

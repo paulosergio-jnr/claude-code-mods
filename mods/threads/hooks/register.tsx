@@ -5,11 +5,13 @@ import type { Form, Kind, PaneUi, Scope, Suggestion, ThreadStore } from '../type
 import {
   DONE_DELAY_MS,
   KINDS,
+  KIND_COLOR,
   MAX_PER_TURN,
   addSuggestions,
   addThread,
   change,
   clip,
+  colorOf,
   emptyStore,
   find,
   glyphOf,
@@ -55,6 +57,8 @@ let draft: { title: string; note: string } | null = null
 // Suggestions taken in the turn that runs, against the limit per turn.
 let perTurn = 0
 let isAutoOpened = false
+// Each form gets Inputs of their own: the surface keeps what was typed in an Input until its key changes.
+let formSeq = 0
 let lastStamp = -1
 let ticks = 0
 
@@ -179,6 +183,7 @@ const dismissSuggestion = ($: EngineInterface, title: string) =>
   update($, suggestions, all => all.filter(s => s.title !== title))
 
 async function openForm($: EngineInterface, form: Form) {
+  formSeq++
   draft = { title: form.title, note: form.note }
   await mutateUi($, s => ({ ...s, form }))
 }
@@ -361,12 +366,22 @@ export const register: Register = (on, options) => {
     const columns = Math.max(24, e.props.bodyColumns ?? 40)
     const room = columns - 16
 
+    // The pane's own title shows only as a tab beside other panes, so the body names the mod.
+    const open = [...shared.threads, ...mine.threads].filter(t => t.status === 'open').length
+    const titleBar = (
+      <Box key="title-bar" justifyContent="center" marginBottom={1}>
+        <Text bold color="claude">Threads</Text>
+        <Text color="subtle">{open > 0 ? ` · ${open} open` : ''}</Text>
+      </Box>
+    )
+
     // ---- the add / edit form replaces the lists
     if (state.form) {
       const form = state.form
       const text = draft ?? { title: form.title, note: form.note }
       return (
         <Box flexDirection="column">
+          {titleBar}
           <Text bold>
             {form.mode === 'add' ? `New ${form.scope} thread` : `Edit ${form.id ?? 'thread'}`}
           </Text>
@@ -378,12 +393,14 @@ export const register: Register = (on, options) => {
                 dimColor={form.kind !== kind}
                 onPress={() => mutateUi($, s => (s.form ? { ...s, form: { ...s.form, kind: s.form.kind === kind ? null : kind } } : s))}
               >
-                {`${form.kind === kind ? '●' : '○'} ${glyphOf(kind)} ${KIND_LABEL[kind]}  `}
+                <Text color={KIND_COLOR[kind]} bold={form.kind === kind} dimColor={form.kind !== kind}>
+                  {`${form.kind === kind ? '●' : '○'} ${glyphOf(kind)} ${KIND_LABEL[kind]}  `}
+                </Text>
               </Button>
             ))}
           </Box>
           <Input
-            key="title"
+            key={`title-${formSeq}`}
             label="title "
             placeholder="what to come back to"
             value={text.title}
@@ -397,7 +414,7 @@ export const register: Register = (on, options) => {
             }}
           />
           <Input
-            key="note"
+            key={`note-${formSeq}`}
             label="note  "
             placeholder="optional detail"
             rows={2}
@@ -414,7 +431,7 @@ export const register: Register = (on, options) => {
             <Button key="save" variant="primary" onPress={() => saveForm($)}>save</Button>
             <Button key="cancel" onPress={() => closeForm($)}>cancel</Button>
           </Box>
-          <Text dimColor>↵ save · Tab next field</Text>
+          <Text color="inactive">↵ save · Tab next field</Text>
         </Box>
       )
     }
@@ -423,17 +440,21 @@ export const register: Register = (on, options) => {
     const addForm = (scope: Scope) =>
       openForm($, { mode: 'add', scope, title: '', note: '', kind: null })
 
-    const header = (label: string, count: number, scope?: Scope) => (
-      <Box key={`head-${label}`} marginTop={1}>
-        <Text bold>{label}</Text>
-        <Text dimColor>{` · ${count}`}</Text>
+    const header = (label: string, count: number, scope?: Scope, color?: string) => (
+      <Box key={`head-${label}`}>
+        <Text bold color={color}>{label}</Text>
+        <Text color="subtle">{` · ${count}`}</Text>
         <Box flexGrow={1} />
         {scope && (
           <Button key={`add-${scope}`} plain hotkey={scope === 'project' ? 'p' : 's'} onPress={() => addForm(scope)}>
-            [+]
+            <Text color="success">[+]</Text>
           </Button>
         )}
       </Box>
+    )
+
+    const rule = (name: string) => (
+      <Text key={`rule-${name}`} color="inactive">{'─'.repeat(Math.max(4, columns - 2))}</Text>
     )
 
     const row = (id: string) => {
@@ -454,23 +475,25 @@ export const register: Register = (on, options) => {
               plain
               onPress={() => mutateUi($, s => ({ ...s, selected: s.selected === id ? null : id }))}
             >
-              <Text bold={isSelected} dimColor={isDone}>{isSelected ? '▌' : ' '}</Text>
-              <Text dimColor={isDone}>{isDone ? '✓' : glyphOf(t.kind)}</Text>
-              <Text dimColor>{` ${id} `}</Text>
+              <Text bold color="claude">{isSelected ? '▌' : ' '}</Text>
+              <Text color={isDone ? 'success' : colorOf(t.kind)}>{isDone ? '✓' : glyphOf(t.kind)}</Text>
+              <Text color="subtle">{` ${id} `}</Text>
               <Text bold={isSelected} dimColor={isDone} strikethrough={isDone}>{label}</Text>
             </Button>
             <Box flexGrow={1} />
             {t.expiresAt !== undefined ? (
               <Button key={`undo-${id}`} plain onPress={() => finish($, settings, id)}>
-                {`[Undo ${left}s]`}
+                <Text color={left <= 5 ? 'error' : 'warning'}>{`[Undo ${left}s]`}</Text>
               </Button>
             ) : (
-              <Button key={`move-${id}`} plain onPress={() => move($, id)}>{arrow}</Button>
+              <Button key={`move-${id}`} plain onPress={() => move($, id)}>
+                <Text color="subtle">{arrow}</Text>
+              </Button>
             )}
           </Box>
           {isSelected && (
             <Box flexDirection="column" paddingLeft={3}>
-              {t.note && <Text dimColor wrap="wrap">{t.note}</Text>}
+              {t.note && <Text color="subtle" wrap="wrap">{t.note}</Text>}
               <Box>
                 <Button key="act-done" plain hotkey="d" onPress={() => finish($, settings, id)}>
                   {isDone ? 'reopen' : 'done'}
@@ -498,7 +521,9 @@ export const register: Register = (on, options) => {
                   {scopeOf(id) === 'project' ? 'to session' : 'to project'}
                 </Button>
                 <Text>{'  '}</Text>
-                <Button key="act-delete" plain hotkey="x" onPress={() => destroy($, id)}>delete</Button>
+                <Button key="act-delete" plain hotkey="x" onPress={() => destroy($, id)}>
+                  <Text color="error">delete</Text>
+                </Button>
               </Box>
             </Box>
           )}
@@ -516,28 +541,36 @@ export const register: Register = (on, options) => {
       return (
         <Box key={label} flexDirection="column">
           {header(label, list.filter(t => t.status === 'open').length, scope)}
-          {list.length === 0 && <Text dimColor>{'  nothing here'}</Text>}
+          {list.length === 0 && <Text color="inactive">{'  nothing here'}</Text>}
           {list.map(t => row(t.id))}
+          {rule(label)}
         </Box>
       )
     }
 
     return (
       <Box flexDirection="column">
+        {titleBar}
         {section('PROJECT', 'project', shared)}
         {section('SESSION', 'session', mine)}
 
         {proposed.length > 0 && (
           <Box flexDirection="column">
-            {header('SUGGESTED', proposed.length)}
+            {header('SUGGESTED', proposed.length, undefined, 'suggestion')}
             {proposed.map((s, i) => (
               <Box key={`suggestion-${i}`}>
-                <Text>{` ${glyphOf(s.kind)} ${clip(s.title, room)}`}</Text>
+                <Text color={colorOf(s.kind)}>{` ${glyphOf(s.kind)} `}</Text>
+                <Text italic>{clip(s.title, room)}</Text>
                 <Box flexGrow={1} />
-                <Button key={`sg-add-${i}`} plain onPress={() => acceptSuggestion($, s.title)}>[+]</Button>
-                <Button key={`sg-del-${i}`} plain onPress={() => dismissSuggestion($, s.title)}>[-]</Button>
+                <Button key={`sg-add-${i}`} plain onPress={() => acceptSuggestion($, s.title)}>
+                  <Text color="success">[+]</Text>
+                </Button>
+                <Button key={`sg-del-${i}`} plain onPress={() => dismissSuggestion($, s.title)}>
+                  <Text color="error">[-]</Text>
+                </Button>
               </Box>
             ))}
+            {rule('SUGGESTED')}
           </Box>
         )}
 
@@ -548,15 +581,15 @@ export const register: Register = (on, options) => {
               plain
               onPress={() => mutateUi($, s => ({ ...s, showDone: !s.showDone }))}
             >
-              {`${state.showDone ? '▾' : '▸'} Done · ${finished.length}`}
+              <Text color="subtle">{`${state.showDone ? '▾' : '▸'} Done · ${finished.length}`}</Text>
             </Button>
             {state.showDone && finished.map(t => row(t.id))}
           </Box>
         )}
 
         <Box flexDirection="column" marginTop={1}>
-          <Text dimColor>Tab/↑↓ walk · ↵ press · p/s add</Text>
-          <Text dimColor>d done · e edit · m move · x delete</Text>
+          <Text color="inactive">Tab/↑↓ walk · ↵ press · p/s add</Text>
+          <Text color="inactive">d done · e edit · m move · x delete</Text>
         </Box>
       </Box>
     )

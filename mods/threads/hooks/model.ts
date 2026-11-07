@@ -10,6 +10,17 @@ export const GLYPH: Record<Kind | 'none', string> = {
   none: '·',
 }
 
+/** Theme keys, so the pane follows the person's theme. */
+export const KIND_COLOR: Record<Kind | 'none', string> = {
+  question: 'suggestion',
+  doubt: 'warning',
+  explore: 'remember',
+  decision: 'claude',
+  none: 'inactive',
+}
+
+export const colorOf = (kind: Kind | undefined) => KIND_COLOR[kind ?? 'none']
+
 export const DONE_DELAY_MS = 30_000
 export const MAX_SUGGESTIONS = 10
 export const MAX_PER_TURN = 5
