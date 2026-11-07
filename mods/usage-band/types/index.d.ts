@@ -10,6 +10,14 @@ export type Segment = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'usage-band': { text: Segment[] | null }
+    'usage-band': {
+      text: Segment[] | null
+      /** The main loop's model, short, once a request has named it. */
+      model: string | null
+      /** The main loop's effort level, when the model takes one. */
+      effort: string | null
+      /** Whether the row of tools, skills and MCP under the band is shown. */
+      open: boolean
+    }
   }
 }

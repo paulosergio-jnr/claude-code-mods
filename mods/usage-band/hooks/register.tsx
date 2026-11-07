@@ -3,6 +3,21 @@ import type { Segment } from '../types'
 import type { ContextCategory, EngineInterface, Register, SessionContextBreakdown, SessionRateLimit } from 'claude-code'
 
 const text = atom({ plugin: 'usage-band', key: 'text' } as const, null)
+const model = atom({ plugin: 'usage-band', key: 'model' } as const, null)
+const effort = atom({ plugin: 'usage-band', key: 'effort' } as const, null)
+const open = atom({ plugin: 'usage-band', key: 'open' } as const, false)
+
+// What the toggle on `context` reveals; the band's own row keeps the rest.
+const EXTRA: readonly string[] = ['tools', 'skills', 'mcp', 'cache read', 'cache write']
+
+/** Splits the segments into the band's row and the expandable one. */
+export const split = (segs: readonly Segment[]): { main: Segment[]; extra: Segment[] } => ({
+  main: segs.filter(s => !EXTRA.includes(s.label)),
+  extra: segs.filter(s => EXTRA.includes(s.label)),
+})
+
+/** `claude-sonnet-5-5` or a dated id as a short name: `sonnet-5-5`. */
+export const modelName = (id: string): string => id.replace(/^claude-/, '').replace(/-\d{8}$/, '')
 
 // Soft tones, none near the yellow and red of the indicators.
 const COLORS = {
@@ -10,12 +25,21 @@ const COLORS = {
   tools: '#b8bcc8',
   skills: '#82c796',
   mcp: '#c58fd9',
+  cache: '#e0c46c',
   session: '#7488e0',
   week: '#8c9eff',
 } as const
 
+const ORANGE = '#f0a050'
+
 // Yellow from 75% and red from 90%, so the label colors keep clear of both.
 const levelOf = (percent: number): 'yellow' | 'red' | undefined => (percent >= 90 ? 'red' : percent >= 75 ? 'yellow' : undefined)
+
+// 1234 as `1.2k`, 160000 as `160k`.
+const compact = (n: number): string => {
+  const f = (v: number, u: string) => `${v.toFixed(1).replace(/\.0$/, '')}${u}`
+  return n >= 1e6 ? f(n / 1e6, 'M') : n >= 1e3 ? f(n / 1e3, 'k') : String(n)
+}
 
 const pct = (tokens: number, window: number): string =>
   window > 0 ? `${((tokens / window) * 100).toFixed(1)}%` : '–'
@@ -23,9 +47,9 @@ const pct = (tokens: number, window: number): string =>
 /** Schema tokens of the built-in tools and the loaded MCP tools. */
 export type Counted = { tools: number; mcp: number }
 
-export type Show = { tools: boolean; skills: boolean; mcp: boolean; session: boolean; week: boolean }
+export type Show = { cache: boolean; tools: boolean; skills: boolean; mcp: boolean; session: boolean; week: boolean }
 
-const ALL: Show = { tools: true, skills: true, mcp: true, session: true, week: true }
+const ALL: Show = { cache: true, tools: true, skills: true, mcp: true, session: true, week: true }
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -90,9 +114,18 @@ export function line(
   const p = max > 0 ? (total / max) * 100 : (percent ?? 0)
 
   const parts: Segment[] = [{ label: 'context', value: `${p.toFixed(1)}%`, level: levelOf(p), color: COLORS.context }]
+  // The last response's prompt reuse: the share of its input read from the cache.
+  const u = b.apiUsage
+  const input = u ? u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens : 0
+  const cache = show.cache && u && input > 0 ? u : undefined
+  if (cache) parts.push({ label: 'cache', value: `${((cache.cache_read_input_tokens / input) * 100).toFixed(0)}%`, color: COLORS.cache })
   if (show.tools) parts.push({ label: 'tools', value: pct(toolTokens, max), color: COLORS.tools })
   if (show.skills) parts.push({ label: 'skills', value: `${b.skills?.includedSkills ?? 0} (${pct(b.skills?.tokens ?? 0, max)})`, color: COLORS.skills })
   if (show.mcp) parts.push({ label: 'mcp', value: `${loaded}/${b.mcpTools.length} (${pct(mcpTokens, max)})`, color: COLORS.mcp })
+  if (cache) {
+    parts.push({ label: 'cache read', value: compact(cache.cache_read_input_tokens), color: COLORS.cache })
+    parts.push({ label: 'cache write', value: compact(cache.cache_creation_input_tokens), color: COLORS.cache })
+  }
   parts.push(...tail)
   return parts
 }
@@ -123,6 +156,7 @@ async function draw($: EngineInterface, show: Show): Promise<void> {
 
 // An option left unset, or stored as anything but false, stays on.
 export const showOf = (options: Readonly<Record<string, unknown>>): Show => ({
+  cache: options.showCache !== false,
   tools: options.showTools !== false,
   skills: options.showSkills !== false,
   mcp: options.showMcp !== false,
@@ -138,6 +172,17 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // The main loop's model and effort, as each request names them.
+  on('turn.step', async function* ($, e, next) {
+    if (e.agentId === undefined) {
+      const m = modelName(e.model)
+      const f = e.effort === undefined ? null : String(e.effort)
+      if ((await read($, model)) !== m) await update($, model, () => m)
+      if ((await read($, effort)) !== f) await update($, effort, () => f)
+    }
+    return yield* next(e)
+  })
+
   on('session.measure', async ($, e, next) => {
     await draw($, show)
     return next(e)
@@ -146,24 +191,64 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const line = await read($, text)
     if (e.props.hasSurvey || line === null) return next(e)
+    const name = await read($, model)
+    const level = await read($, effort)
+    const expanded = await read($, open)
+    const { main, extra } = split(line)
+    const [first, ...rest] = main
 
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const sep = <Text dimColor>{' · '}</Text>
+    const seg = (s: Segment) => (
+      <Text>
+        <Text color={s.color}>{s.label}</Text>
+        {' '}
+        <Text color={s.level}>{s.value}</Text>
+        {s.note ? ` ${s.note}` : null}
+      </Text>
+    )
     return (
       <Box flexDirection="column">
         <Text dimColor wrap="truncate">
           {'─'.repeat(500)}
         </Text>
-        <Text wrap="truncate">
-          {line.map((seg, i) => (
-            <Text key={seg.label}>
-              {i > 0 ? <Text dimColor>{' · '}</Text> : null}
-              <Text color={seg.color}>{seg.label}</Text>
-              {' '}
-              <Text color={seg.level}>{seg.value}</Text>
-              {seg.note ? ` ${seg.note}` : null}
+        <Box flexDirection="row">
+          {name ? (
+            <Text wrap="truncate">
+              <Text color={ORANGE}>{name}</Text>
+              {level ? <Text color="white">{` ${level}`}</Text> : null}
+              {sep}
             </Text>
-          ))}
-        </Text>
+          ) : null}
+          {first && extra.length > 0 ? (
+            <Button key="context" plain onPress={() => update($, open, v => !v)}>
+              <Text color={first.color}>{first.label}</Text>
+              {' '}
+              <Text color={first.level}>{first.value}</Text>
+              <Text dimColor>{expanded ? ' [-]' : ' [+]'}</Text>
+            </Button>
+          ) : first ? (
+            seg(first)
+          ) : null}
+          <Text wrap="truncate">
+            {rest.map(s => (
+              <Text key={s.label}>
+                {sep}
+                {seg(s)}
+              </Text>
+            ))}
+          </Text>
+        </Box>
+        {expanded && extra.length > 0 ? (
+          <Text wrap="truncate">
+            {extra.map((s, i) => (
+              <Text key={s.label}>
+                {i > 0 ? sep : null}
+                {seg(s)}
+              </Text>
+            ))}
+          </Text>
+        ) : null}
       </Box>
     )
   })
