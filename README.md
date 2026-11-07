@@ -22,7 +22,7 @@ Or from inside a session: `/plugin marketplace add paulosergio-jnr/claude-code-m
 | Mod | What it does |
 | --- | --- |
 | [agent-flow](mods/agent-flow) | Animated timeline pane of the orchestrator and its subagents: who is thinking, acting or waiting, and the messages between them. |
-| [usage-band](mods/usage-band) | Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-expand row for tools, skills and MCP share of context |
+| [usage-band](mods/usage-band) | Band above the prompt showing the model and effort, context %, cache hit rate, and session and weekly limits, with a click-to-open side pane that breaks down context, cache, tools, skills and MCP |
 | [threads](mods/threads) | Side pane to track open questions, doubts and ideas as threads, per session or saved per project, with threads Claude suggests for you to accept or dismiss. |
 
 ## Layout
