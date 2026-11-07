@@ -1,0 +1,44 @@
+{
+  "name": "threads",
+  "version": "1.0.0",
+  "description": "Track open questions, doubts and ideas as threads in a side pane, per session or per project, with Claude-suggested threads",
+  "author": {
+    "name": "Paulo Sergio Pereira Junior"
+  },
+  "license": "Apache-2.0",
+  "repository": "https://github.com/paulosergio-jnr/claude-code-mods",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "suggestions": {
+      "type": "string",
+      "title": "Suggested threads",
+      "description": "on: Claude proposes threads it sees left open, shown in the pane's Suggested block. off: no tool, no prompt text.",
+      "options": [
+        "on",
+        "off"
+      ],
+      "default": "on"
+    },
+    "paneVisibility": {
+      "type": "string",
+      "title": "Open the pane automatically",
+      "description": "at-start: when a session starts. at-suggestion: the first time Claude suggests a thread. manual: only /threads opens it.",
+      "options": [
+        "at-start",
+        "at-suggestion",
+        "manual"
+      ],
+      "default": "manual"
+    },
+    "doneRetention": {
+      "type": "string",
+      "title": "Finished threads",
+      "description": "keep: they stay in the Done list. delete: they are removed 30 seconds after you finish them, with an Undo.",
+      "options": [
+        "keep",
+        "delete"
+      ],
+      "default": "keep"
+    }
+  }
+}
