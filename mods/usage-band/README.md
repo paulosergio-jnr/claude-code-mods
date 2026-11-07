@@ -1,6 +1,6 @@
 # usage-band
 
-A dim band above the prompt. Click the `[?]` after `context` to open a side pane with the full breakdown, and click it again to close the pane. The sign takes the color of `context`, dimmed while the pane is closed.
+A dim band above the prompt. Click the `[?]` after `context` to open a side pane with the full breakdown, and click it again to close the pane. The sign is purple, dimmed while the pane is closed.
 
 Band:
 
