@@ -73,6 +73,7 @@ test('a subagent shows as working, then done, with its task and result', async (
   await ui.pointer({ type: 'down', button: 'left', x: 8, y: 4, in: 'graph' })
   expect(await ui.find({ in: 'graph', text: /cache read 500/ })).toBeDefined()
   expect(await ui.find({ in: 'graph', text: /effort\s+high/ })).toBeDefined()
+  expect(await ui.find({ in: 'graph', text: /cache\s+33% hit rate/ })).toBeDefined()
   expect(await ui.find({ in: 'graph', text: /cache read 500/ })).toBeDefined()
   await ui.pointer({ type: 'down', button: 'left', x: 8, y: 4, in: 'graph' })
   expect(await ui.find({ in: 'graph', text: /cache read 500/ })).toBeUndefined()

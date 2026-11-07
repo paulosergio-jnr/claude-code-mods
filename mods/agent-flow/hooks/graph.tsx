@@ -340,6 +340,7 @@ const GraphView: ClientModule<Props, State> = (props, surface) => {
     field('model', a.model ?? 'unknown')
     field('effort', effort(a))
     field('tokens', tokens)
+    if (a.tokensIn) field('cache', `${Math.round(((a.cacheRead ?? 0) / a.tokensIn) * 100)}% hit rate · ${count(a.cacheRead ?? 0)} of ${count(a.tokensIn)} input read from cache`)
     if (a.tokenLog?.length) field('rate', sparkline(a, runEnd, 24) + ' output tokens, last 3 minutes')
     if (a.endedAt !== undefined) field('time', duration(a))
     field('tools', tools || 'none')
