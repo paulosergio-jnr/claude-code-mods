@@ -284,3 +284,19 @@ test('the guidance reaches the model through the system prompt and through the t
   const composed = await $.prompt.compose({ model: 'claude-opus-5-5', promptModel: 'claude-opus-5-5', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] })
   expect(composed.sections.map(s => s.id)).toEqual(['intro', 'threads:suggest'])
 })
+
+test('a selected thread shows its whole title; unselected, the title is clipped', async ($, on) => {
+  engine(on)
+  await $.session.start(START)
+  const title = 'A very long question about whether the lock directory survives a crashed session'
+  await $.command.run({ ...TYPED, command: 'thread', args: title })
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: title })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /…/ })).toBeDefined()
+
+  await ui.press({ key: 'row-s1' })
+  expect(await ui.find({ type: 'Text', text: title })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /…/ })).toBeUndefined()
+  await ui.unmount()
+})

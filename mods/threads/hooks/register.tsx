@@ -475,21 +475,27 @@ export const register: Register = (on, options) => {
       const left = Math.max(0, Math.ceil(((t.expiresAt ?? now) - now) / 1000))
       const label = clip(t.title, room)
       const arrow = scopeOf(id) === 'project' ? '[↓]' : '[↑]'
+      const toggle = () => mutateUi($, s => ({ ...s, selected: s.selected === id ? null : id }))
 
       return (
         <Box key={`thread-${id}`} flexDirection="column">
           <Box>
-            <Button
-              key={`row-${id}`}
-              plain
-              onPress={() => mutateUi($, s => ({ ...s, selected: s.selected === id ? null : id }))}
-            >
+            <Button key={`row-${id}`} plain onPress={toggle}>
               <Text bold color="claude">{isSelected ? '▌' : ' '}</Text>
               <Text color={isDone ? 'success' : colorOf(t.kind)}>{isDone ? '✓' : glyphOf(t.kind)}</Text>
               <Text color="subtle">{` ${id} `}</Text>
-              <Text bold={isSelected} dimColor={isDone} strikethrough={isDone}>{label}</Text>
+              {!isSelected && <Text dimColor={isDone} strikethrough={isDone}>{label}</Text>}
             </Button>
-            <Box flexGrow={1} />
+            {isSelected ? (
+              // A selected thread shows its title in whole, wrapped beside the id.
+              <Box flexGrow={1} flexShrink={1}>
+                <Text bold wrap="wrap" dimColor={isDone} strikethrough={isDone}>
+                  {t.title.replace(/\s+/g, ' ').trim()}
+                </Text>
+              </Box>
+            ) : (
+              <Box flexGrow={1} />
+            )}
             {t.expiresAt !== undefined ? (
               <Button key={`undo-${id}`} plain onPress={() => finish($, settings, id)}>
                 <Text color={left <= 5 ? 'error' : 'warning'}>{`[Undo ${left}s]`}</Text>
