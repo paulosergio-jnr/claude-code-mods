@@ -1,17 +1,51 @@
-# threads
+# 🧵 threads
 
-Keep track of the open questions, doubts and ideas that get lost in a long conversation. Threads adds a side pane with two lists: **Project** threads, saved in `.claude/threads.local.json`, and **Session** threads, which belong to one conversation: they come back with `claude --resume` and disappear on `/clear`. Claude can also propose threads it sees left open; they wait in a **Suggested** block until you accept (`[+]`) or dismiss (`[-]`) them.
+**Keep the open questions, doubts and ideas that get lost in a long conversation.** A side pane with your **Project** and **Session** threads, plus the ones Claude suggests for you to accept or dismiss.
 
-![threads](../../docs/threads.png)
+<p align="center">
+  <img src="../../docs/threads.png" alt="threads: a side pane with one project thread, two session threads and two suggested threads" width="520">
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> · <a href="#how-it-works">How it works</a> · <a href="#use">Use</a> · <a href="#settings">Settings</a> · <a href="#notes">Notes</a> · <a href="../../README.md">All mods</a>
+</p>
+
+## Install
+
+Inside Claude Code:
+
+```text
+/plugin marketplace add paulosergio-jnr/claude-code-mods
+/plugin install threads@claude-code-mods
+/reload-plugins
+/threads
+```
+
+## How it works
+
+| List | Holds | Kept |
+| --- | --- | --- |
+| **Project** | Threads that belong to the repository | In `.claude/threads.local.json` |
+| **Session** | Threads that belong to one conversation | Come back with `claude --resume`; gone on `/clear` |
+| **Suggested** | Threads Claude sees left open, waiting for you | Until you accept `[+]` or dismiss `[-]` them |
+
+A thread has a title, an optional note and an optional kind: `?` question, `!` doubt, `◇` explore, `◆` decision.
 
 ## Use
 
-- `/threads` shows or hides the pane. Click or Tab to a row to select it; the buttons at the end of a row move it between scopes (`[↑]` promotes a session thread to the project, `[↓]` demotes it).
-- `/thread <text>` adds a session thread from the prompt; `/thread --project <text>` adds a project one.
-- With a row selected: `d` done/reopen, `e` edit, `m` move, `x` delete. `p` and `s` add a project or session thread. Tab or the arrow keys walk the buttons.
-- A thread has a title, an optional note and an optional kind: `?` question, `!` doubt, `◇` explore, `◆` decision.
+| Command or key | Does |
+| --- | --- |
+| `/threads` | Shows or hides the pane |
+| `/thread <text>` | Adds a session thread from the prompt |
+| `/thread --project <text>` | Adds a project thread |
+| `[↑]` / `[↓]` | Promotes a session thread to the project, or demotes a project one |
+| `d` · `e` · `m` · `x` | With a row selected: done/reopen, edit, move, delete |
+| `p` · `s` | Adds a project or a session thread |
+| Tab, ↑/↓ | Walk the rows and buttons; clicking works too |
 
 ## Settings
+
+Change them in `/config`, or with `claude plugin configure threads@claude-code-mods`.
 
 | Setting | Values | Default |
 | --- | --- | --- |
