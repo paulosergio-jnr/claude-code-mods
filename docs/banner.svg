@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-labelledby="title desc">
+  <title id="title">claude-code-mods</title>
+  <desc id="desc">A terminal window with the repository name, a tagline, agent lanes in the style of agent-flow and a usage line in the style of usage-band.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b1c21"/>
+      <stop offset="1" stop-color="#121317"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="1278" height="318" rx="16" fill="url(#bg)" stroke="#2e3038" stroke-width="2"/>
+  <circle cx="34" cy="32" r="7" fill="#ff5f57"/>
+  <circle cx="58" cy="32" r="7" fill="#febc2e"/>
+  <circle cx="82" cy="32" r="7" fill="#28c840"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace">
+    <text x="64" y="132" font-size="54" font-weight="700" fill="#f2f2f4"><tspan fill="#d97757">❯</tspan> claude-code-mods</text>
+    <text x="66" y="176" font-size="21" fill="#9aa0aa">Panes, bands and live views for Claude Code.</text>
+
+    <!-- agent-flow: an orchestrator lane and three subagents -->
+    <g stroke-width="4" stroke-linecap="round" fill="none">
+      <path d="M880 74 H935" stroke="#ff9e3d"/>
+      <path d="M935 74 H985" stroke="#5aa9ff"/>
+      <path d="M985 74 H1176" stroke="#82c796"/>
+      <path d="M1170 67 L1182 74 L1170 81" stroke="#82c796"/>
+      <path d="M985 74 V130" stroke="#e8c547" stroke-width="2"/>
+      <path d="M985 96 H1040" stroke="#ff9e3d"/><path d="M1040 96 H1075" stroke="#5aa9ff"/><path d="M1075 96 H1176" stroke="#ff9e3d"/>
+      <path d="M985 113 H1010" stroke="#ff9e3d"/><path d="M1010 113 H1060" stroke="#5aa9ff"/><path d="M1060 113 H1176" stroke="#ff9e3d"/>
+      <path d="M985 130 H1060" stroke="#ff9e3d"/><path d="M1060 130 H1176" stroke="#5aa9ff"/>
+    </g>
+    <circle cx="985" cy="74" r="7" fill="#e8c547"/>
+    <circle cx="1206" cy="74" r="6" fill="#82c796"/>
+    <circle cx="1206" cy="96" r="4" fill="#ff9e3d"/>
+    <circle cx="1206" cy="113" r="4" fill="#5aa9ff"/>
+    <circle cx="1206" cy="130" r="4" fill="#ff9e3d"/>
+
+    <!-- threads: an open question and a suggestion -->
+    <text x="972" y="170" font-size="16" xml:space="preserve"><tspan fill="#8c9eff">?</tspan><tspan fill="#c8cad0"> Lockfile needed?</tspan></text>
+    <text x="972" y="196" font-size="16" xml:space="preserve"><tspan fill="#d97757">◆</tspan><tspan fill="#c8cad0" font-style="italic"> Deletes propagate?</tspan><tspan fill="#82c796"> [+]</tspan></text>
+
+    <!-- usage-band: the band above the prompt -->
+    <path d="M64 226 H1216" stroke="#34363e" stroke-width="2"/>
+    <text x="64" y="268" font-size="21" xml:space="preserve"><tspan fill="#f0a050">sonnet-5-5</tspan><tspan fill="#e6e6e6"> medium</tspan><tspan fill="#5d616b"> · </tspan><tspan fill="#6fc3d6">context</tspan><tspan fill="#e6e6e6"> 4.3% </tspan><tspan fill="#c58fd9">[?]</tspan><tspan fill="#5d616b"> · </tspan><tspan fill="#e0c46c">cache</tspan><tspan fill="#e6e6e6"> 71%</tspan><tspan fill="#5d616b"> · </tspan><tspan fill="#7488e0">session</tspan><tspan fill="#e6e6e6"> 8.0%</tspan><tspan fill="#5d616b"> · </tspan><tspan fill="#8c9eff">week</tspan><tspan fill="#e6e6e6"> 6.0%</tspan></text>
+  </g>
+</svg>
