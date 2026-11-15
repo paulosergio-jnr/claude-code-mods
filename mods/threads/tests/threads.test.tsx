@@ -278,11 +278,29 @@ test('the guidance reaches the model through the system prompt and through the t
   on('prompt.compose', async () => ({ sections: [{ id: 'intro', text: 'You are Claude.', scope: 'shared' }] }) as never)
   await $.session.start(START)
   const described = tools[0]?.description ?? ''
-  expect(described).toMatch(/Call it once, at the end of a turn/)
+  expect(described).toMatch(/before you write your final message/)
+  expect(described).not.toMatch(/at the end of a turn/)
   expect(described).toMatch(/Never mention the call in your reply/)
+  expect(described).toMatch(/never restate after it what you already wrote before it/)
 
   const composed = await $.prompt.compose({ model: 'claude-opus-5-5', promptModel: 'claude-opus-5-5', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] })
   expect(composed.sections.map(s => s.id)).toEqual(['intro', 'threads:suggest'])
+  const guidance = composed.sections.find(s => s.id === 'threads:suggest')?.text ?? ''
+  expect(guidance).toMatch(/before you write your final message/)
+  expect(guidance).not.toMatch(/at the end of the turn/)
+  expect(guidance).toMatch(/never restate after it/)
+})
+
+// The turn goes on after the call; a model that called it after its reply must not write the reply again.
+test('the tool result says what the user already sees, without ending the turn', async ($, on) => {
+  engine(on)
+  await $.session.start(START)
+  const result = JSON.stringify(await $.tool.call({ tool: SUGGEST, threads: [{ title: 'Pick a cache size' }] } as never))
+  expect(result).toContain('Queued 1 suggested thread for the user.')
+  expect(result).toContain('already shown to the user')
+  expect(result).toContain('carry on with anything that remains')
+  expect(result).toContain('do not restate')
+  expect(result).not.toMatch(/end (your|the) turn/i)
 })
 
 test('a selected thread shows its whole title; unselected, the title is clipped', async ($, on) => {
