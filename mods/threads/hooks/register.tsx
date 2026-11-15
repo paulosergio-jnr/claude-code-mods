@@ -46,25 +46,14 @@ type Settings = {
   retention: 'keep' | 'delete'
 }
 
-const GUIDANCE = [
-  'The user keeps a list of open threads in a side pane: unresolved questions, doubts, deferred items and undecided choices.',
-  'When your reply leaves one of these open (a question you asked that is still unanswered, something you set aside as "later" or out of scope, a doubt of the user that is not settled, a decision left open), call suggest_threads once, with up to 5 short titles, as soon as you know what your reply leaves open and before you write your final message.',
-  'Be selective: skip what you resolved in this turn, plain to-dos, and anything already listed. Never mention the call in your reply, and never restate after it what you already wrote before it.',
-].join(' ')
-
-// The tool carries the guidance too: where an organization's managed plugin (cc-plugin-sec-default)
-// sends `prompt.compose` past user-tier hooks, the system prompt section never lands, but the
-// description of a tool that is not deferred always reaches the model.
+// The tool's description is the only guidance: it reaches the model on every machine, managed or not,
+// and leaves the model free to call the tool whenever it notices something left open.
 export const TOOL_DESCRIPTION = [
-  'Propose threads for the user to keep: unresolved questions, deferred items and undecided choices that this reply leaves open; they appear in the Threads pane for the user to accept or dismiss.',
-  'Call it once in a turn whose reply leaves one of these open (a question you asked that is still unanswered, something you set aside as "later" or out of scope, a doubt of the user that is not settled, a decision left open), with up to 5 short titles, as soon as you know what your reply leaves open and before you write your final message.',
-  'Be selective: skip what you resolved in this turn, plain to-dos, and anything already listed. Never mention the call in your reply, and never restate after it what you already wrote before it.',
+  "Add items to the user's Threads pane: a side list where they keep open questions, doubts, deferred items and undecided choices to come back to.",
+  'Suggestions wait there for the user to accept or dismiss.',
+  'Call it whenever you notice something left open: a question you asked that is still unanswered, something set aside as "later" or out of scope, a doubt of the user that is not settled, a decision left open.',
+  'Be selective: skip plain to-dos and anything already listed. Up to 5 titles per turn; keep each one short and clear without context.',
 ].join(' ')
-
-// The turn goes on after the call. The result says what the user already sees, without assuming the
-// reply is done: a model that called late should add what remains, not write its reply again.
-export const AFTER_CALL =
-  'Whatever you wrote before this call is already shown to the user: carry on with anything that remains, but do not restate what is there. If nothing remains, a single closing line is enough.'
 
 // Drafts of the open form live outside the state: each keystroke would redraw the pane.
 let draft: { title: string; note: string } | null = null
@@ -319,13 +308,6 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // Skipped where cc-plugin-sec-default is seated; the tool's description stands in there.
-  on('prompt.compose', async ($, e, next) => {
-    const composed = await next(e)
-    if (!settings.isSuggesting) return composed
-    return { sections: [...composed.sections, { id: 'threads:suggest', text: GUIDANCE, scope: 'session' as const }] }
-  })
-
   on('tool.call', { tool: SUGGEST_TOOL }, async ($, e) => {
     if (!settings.isSuggesting) return { deny: 'Suggested threads are switched off.' }
 
@@ -349,8 +331,7 @@ export const register: Register = (on, options) => {
     return {
       result:
         `Queued ${taken} suggested thread${taken === 1 ? '' : 's'} for the user.` +
-        (skipped > 0 ? ` ${skipped} not queued (duplicates, or over the limit of ${MAX_PER_TURN} per turn).` : '') +
-        ` ${AFTER_CALL}`,
+        (skipped > 0 ? ` ${skipped} not queued (duplicates, or over the limit of ${MAX_PER_TURN} per turn).` : ''),
     }
   })
 
