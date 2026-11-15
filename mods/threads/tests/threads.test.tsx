@@ -272,17 +272,22 @@ test('a form opens empty each time, with Inputs the surface has not typed into',
   await ui.unmount()
 })
 
-// Where a managed plugin sends prompt.compose past user hooks, the tool's description still carries the guidance.
-test('the guidance reaches the model through the system prompt and through the tool description', async ($, on) => {
+// The description is the only guidance: nothing goes into the system prompt, and the model may call
+// the tool whenever it notices something left open.
+test('the guidance lives in the tool description alone, and the result is a plain status', async ($, on) => {
   const { tools } = engine(on)
   on('prompt.compose', async () => ({ sections: [{ id: 'intro', text: 'You are Claude.', scope: 'shared' }] }) as never)
   await $.session.start(START)
   const described = tools[0]?.description ?? ''
-  expect(described).toMatch(/Call it once, at the end of a turn/)
-  expect(described).toMatch(/Never mention the call in your reply/)
+  expect(described).toMatch(/Call it whenever you notice something left open/)
+  expect(described).not.toMatch(/end of (a|the) turn|final message|Never mention/)
 
   const composed = await $.prompt.compose({ model: 'claude-opus-5-5', promptModel: 'claude-opus-5-5', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] })
-  expect(composed.sections.map(s => s.id)).toEqual(['intro', 'threads:suggest'])
+  expect(composed.sections.map(s => s.id)).toEqual(['intro'])
+
+  const result = JSON.stringify(await $.tool.call({ tool: SUGGEST, threads: [{ title: 'Pick a cache size' }] } as never))
+  expect(result).toContain('Queued 1 suggested thread for the user.')
+  expect(result).not.toMatch(/turn|restate/)
 })
 
 test('a selected thread shows its whole title; unselected, the title is clipped', async ($, on) => {
