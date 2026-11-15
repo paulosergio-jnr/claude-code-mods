@@ -25,3 +25,4 @@ Keep track of the open questions, doubts and ideas that get lost in a long conve
 - The project file is plain JSON. Commit it or add `.claude/threads.local.json` to `.gitignore`, as you prefer.
 - Sessions sharing a project coordinate writes with a lock directory, `.claude/threads.local.lock`, and the pane picks up each other's changes within a couple of seconds.
 - Suggestions come from the `suggest_threads` tool Claude can call: at most 5 per turn, 10 waiting at a time, and never a title that is already a thread.
+- When to suggest is explained to Claude twice: in a system prompt section and in the tool's own description. On Team, Enterprise or managed machines the organization's `cc-plugin-sec-default` skips user plugins' system prompt hooks, and the tool description still gets through.

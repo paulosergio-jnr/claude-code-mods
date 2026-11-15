@@ -39,7 +39,11 @@ function engine(on: On) {
   on('session.start', async (_$, e) => ({ cwd: e.cwd }) as never)
   on('session.end', async (_$, e) => ({ sessionId: e.sessionId }) as never)
   on('command.register', async () => ({ value: undefined }) as never)
-  on('tool.register', async () => ({ value: { tool: SUGGEST } }) as never)
+  const tools: { description?: string }[] = []
+  on('tool.register', async (_$, e) => {
+    tools.push(e)
+    return { value: { tool: SUGGEST } } as never
+  })
   on('ui.panes', async () => ({ value: [] }) as never)
   on('ui.open', async (_$, e) => {
     opened.push(e.id)
@@ -67,7 +71,7 @@ function engine(on: On) {
     }
     return { value: { exitCode, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } } as never
   })
-  return { files, opened, kept }
+  return { files, opened, kept, tools }
 }
 
 test('/thread adds to the session, and --project writes the project file', async ($, on) => {
@@ -266,4 +270,17 @@ test('a form opens empty each time, with Inputs the surface has not typed into',
   expect(second[1]).not.toBe(first[1])
   expect((await ui.find({ key: second[1] as string }))?.text ?? '').toBe('')
   await ui.unmount()
+})
+
+// Where a managed plugin sends prompt.compose past user hooks, the tool's description still carries the guidance.
+test('the guidance reaches the model through the system prompt and through the tool description', async ($, on) => {
+  const { tools } = engine(on)
+  on('prompt.compose', async () => ({ sections: [{ id: 'intro', text: 'You are Claude.', scope: 'shared' }] }) as never)
+  await $.session.start(START)
+  const described = tools[0]?.description ?? ''
+  expect(described).toMatch(/Call it once, at the end of a turn/)
+  expect(described).toMatch(/Never mention the call in your reply/)
+
+  const composed = await $.prompt.compose({ model: 'claude-opus-5-5', promptModel: 'claude-opus-5-5', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] })
+  expect(composed.sections.map(s => s.id)).toEqual(['intro', 'threads:suggest'])
 })

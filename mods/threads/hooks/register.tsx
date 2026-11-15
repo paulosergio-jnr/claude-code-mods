@@ -52,6 +52,15 @@ const GUIDANCE = [
   'Be selective: skip what you resolved in this turn, plain to-dos, and anything already listed. Never mention the call in your reply.',
 ].join(' ')
 
+// The tool carries the guidance too: where an organization's managed plugin (cc-plugin-sec-default)
+// sends `prompt.compose` past user-tier hooks, the system prompt section never lands, but the
+// description of a tool that is not deferred always reaches the model.
+export const TOOL_DESCRIPTION = [
+  'Propose threads for the user to keep: unresolved questions, deferred items and undecided choices that this reply leaves open; they appear in the Threads pane for the user to accept or dismiss.',
+  'Call it once, at the end of a turn whose reply leaves one of these open (a question you asked that is still unanswered, something you set aside as "later" or out of scope, a doubt of the user that is not settled, a decision left open), with up to 5 short titles.',
+  'Be selective: skip what you resolved in this turn, plain to-dos, and anything already listed. Never mention the call in your reply.',
+].join(' ')
+
 // Drafts of the open form live outside the state: each keystroke would redraw the pane.
 let draft: { title: string; note: string } | null = null
 // Suggestions taken in the turn that runs, against the limit per turn.
@@ -255,8 +264,7 @@ export const register: Register = (on, options) => {
     if (settings.isSuggesting) {
       await $.tool.register({
         name: 'suggest_threads',
-        description:
-          'Propose threads for the user to keep: unresolved questions, deferred items and undecided choices that this reply leaves open. At most 5 per turn; they appear in the Threads pane for the user to accept or dismiss.',
+        description: TOOL_DESCRIPTION,
         inputSchema: {
           type: 'object',
           properties: {
@@ -306,6 +314,7 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // Skipped where cc-plugin-sec-default is seated; the tool's description stands in there.
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
     if (!settings.isSuggesting) return composed
