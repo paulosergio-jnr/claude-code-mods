@@ -303,5 +303,49 @@ test('a selected thread shows its whole title; unselected, the title is clipped'
   await ui.press({ key: 'row-s1' })
   expect(await ui.find({ type: 'Text', text: title })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /…/ })).toBeUndefined()
+
+  // Pressing the title of the open thread collapses it again.
+  await ui.press({ key: 'title-s1' })
+  expect(await ui.find({ type: 'Text', text: title })).toBeUndefined()
+  expect(await ui.find({ type: 'Button', key: 'act-done' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a selected thread is highlighted in whole, with actions drawn as buttons', async ($, on) => {
+  engine(on)
+  await $.session.start(START)
+  await $.command.run({ ...TYPED, command: 'thread', args: 'Pick a lock strategy' })
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(JSON.stringify(await ui.drawn())).not.toContain('"backgroundColor"')
+  expect(await ui.find({ type: 'Button', key: 'act-done' })).toBeUndefined()
+
+  await ui.press({ key: 'row-s1' })
+  const drawn = JSON.stringify(await ui.drawn())
+  expect(drawn).toContain('"backgroundColor":"userMessageBackground"')
+  for (const key of ['act-done', 'act-edit', 'act-move', 'act-delete']) {
+    expect(await ui.find({ type: 'Button', key })).toBeDefined()
+    // A plain Button is drawn as a shortcut (`d: done`); these are drawn as buttons.
+    expect(drawn).not.toMatch(new RegExp(`"key":"${key}"[^}]*"plain":true`))
+  }
+  await ui.unmount()
+})
+
+test('the clear button empties the suggested list and leaves the threads alone', async ($, on) => {
+  engine(on)
+  await $.session.start(START)
+  await $.command.run({ ...TYPED, command: 'thread', args: 'Keep me' })
+  await $.tool.call({
+    tool: 'mcp__threads__suggest_threads',
+    threads: [{ title: 'Suggested one' }, { title: 'Suggested two' }],
+  } as never)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: /Suggested one/ })).toBeDefined()
+
+  await ui.press({ key: 'clear-SUGGESTED' })
+  expect(await ui.find({ type: 'Text', text: /Suggested/ })).toBeUndefined()
+  expect(await ui.find({ key: 'clear-SUGGESTED' })).toBeUndefined()
+  expect(await ui.find({ type: 'Button', key: 'row-s1' })).toBeDefined()
   await ui.unmount()
 })

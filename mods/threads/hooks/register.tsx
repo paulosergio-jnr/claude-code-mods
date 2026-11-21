@@ -65,6 +65,9 @@ let formSeq = 0
 let lastStamp = -1
 let ticks = 0
 
+// The whole selected row, title line and actions, sits on this background of the person's theme.
+const SELECTED_BG = 'userMessageBackground'
+
 const KIND_LABEL: Record<Kind, string> = {
   question: 'question',
   doubt: 'doubt',
@@ -184,6 +187,8 @@ async function acceptSuggestion($: EngineInterface, title: string) {
 
 const dismissSuggestion = ($: EngineInterface, title: string) =>
   update($, suggestions, all => all.filter(s => s.title !== title))
+
+const clearSuggestions = ($: EngineInterface) => update($, suggestions, () => [])
 
 async function openForm($: EngineInterface, form: Form) {
   formSeq++
@@ -465,7 +470,11 @@ export const register: Register = (on, options) => {
       const toggle = () => mutateUi($, s => ({ ...s, selected: s.selected === id ? null : id }))
 
       return (
-        <Box key={`thread-${id}`} flexDirection="column">
+        <Box
+          key={`thread-${id}`}
+          flexDirection="column"
+          {...(isSelected ? { backgroundColor: SELECTED_BG } : {})}
+        >
           <Box>
             <Button key={`row-${id}`} plain onPress={toggle}>
               <Text bold color="claude">{isSelected ? '▌' : ' '}</Text>
@@ -474,11 +483,13 @@ export const register: Register = (on, options) => {
               {!isSelected && <Text dimColor={isDone} strikethrough={isDone}>{label}</Text>}
             </Button>
             {isSelected ? (
-              // A selected thread shows its title in whole, wrapped beside the id.
+              // A selected thread shows its title in whole, wrapped beside the id; pressing it collapses the row.
               <Box flexGrow={1} flexShrink={1}>
-                <Text bold wrap="wrap" dimColor={isDone} strikethrough={isDone}>
-                  {t.title.replace(/\s+/g, ' ').trim()}
-                </Text>
+                <Button key={`title-${id}`} plain onPress={toggle}>
+                  <Text bold wrap="wrap" dimColor={isDone} strikethrough={isDone}>
+                    {t.title.replace(/\s+/g, ' ').trim()}
+                  </Text>
+                </Button>
               </Box>
             ) : (
               <Box flexGrow={1} />
@@ -496,36 +507,40 @@ export const register: Register = (on, options) => {
           {isSelected && (
             <Box flexDirection="column" paddingLeft={3}>
               {t.note && <Text color="subtle" wrap="wrap">{t.note}</Text>}
-              <Box>
-                <Button key="act-done" plain hotkey="d" onPress={() => finish($, settings, id)}>
-                  {isDone ? 'reopen' : 'done'}
-                </Button>
-                <Text>{'  '}</Text>
-                <Button
-                  key="act-edit"
-                  plain
-                  hotkey="e"
-                  onPress={() =>
-                    openForm($, {
-                      mode: 'edit',
-                      scope: scopeOf(id),
-                      id,
-                      title: t.title,
-                      note: t.note ?? '',
-                      kind: t.kind ?? null,
-                    })
-                  }
-                >
-                  edit
-                </Button>
-                <Text>{'  '}</Text>
-                <Button key="act-move" plain hotkey="m" onPress={() => move($, id)}>
-                  {scopeOf(id) === 'project' ? 'to session' : 'to project'}
-                </Button>
-                <Text>{'  '}</Text>
-                <Button key="act-delete" plain hotkey="x" onPress={() => destroy($, id)}>
-                  <Text color="error">delete</Text>
-                </Button>
+              <Box flexDirection="row" flexWrap="wrap">
+                <Box marginRight={1}>
+                  <Button key="act-done" variant="primary" hotkey="d" onPress={() => finish($, settings, id)}>
+                    {isDone ? 'reopen' : 'done'}
+                  </Button>
+                </Box>
+                <Box marginRight={1}>
+                  <Button
+                    key="act-edit"
+                    hotkey="e"
+                    onPress={() =>
+                      openForm($, {
+                        mode: 'edit',
+                        scope: scopeOf(id),
+                        id,
+                        title: t.title,
+                        note: t.note ?? '',
+                        kind: t.kind ?? null,
+                      })
+                    }
+                  >
+                    edit
+                  </Button>
+                </Box>
+                <Box marginRight={1}>
+                  <Button key="act-move" hotkey="m" onPress={() => move($, id)}>
+                    {scopeOf(id) === 'project' ? 'to session' : 'to project'}
+                  </Button>
+                </Box>
+                <Box marginRight={1}>
+                  <Button key="act-delete" hotkey="x" onPress={() => destroy($, id)}>
+                    <Text color="error">delete</Text>
+                  </Button>
+                </Box>
               </Box>
             </Box>
           )}
@@ -572,6 +587,11 @@ export const register: Register = (on, options) => {
                 </Button>
               </Box>
             ))}
+            <Box justifyContent="center" marginTop={1}>
+              <Button key="clear-SUGGESTED" onPress={() => clearSuggestions($)}>
+                {'    clear all suggestions    '}
+              </Button>
+            </Box>
             {rule('SUGGESTED')}
           </Box>
         )}

@@ -27,7 +27,7 @@ Inside Claude Code:
 | --- | --- | --- |
 | **Project** | Threads that belong to the repository | In `.claude/threads.local.json` |
 | **Session** | Threads that belong to one conversation | Come back with `claude --resume`; gone on `/clear` |
-| **Suggested** | Threads Claude sees left open, waiting for you | Until you accept `[+]` or dismiss `[-]` them |
+| **Suggested** | Threads Claude sees left open, waiting for you | Until you accept `[+]` or dismiss `[-]` them, or empty the list with `[ clear all suggestions ]`, under the last one |
 
 A thread has a title, an optional note and an optional kind: `?` question, `!` doubt, `◇` explore, `◆` decision.
 
@@ -39,7 +39,7 @@ A thread has a title, an optional note and an optional kind: `?` question, `!` d
 | `/thread <text>` | Adds a session thread from the prompt |
 | `/thread --project <text>` | Adds a project thread |
 | `[↑]` / `[↓]` | Promotes a session thread to the project, or demotes a project one |
-| `d` · `e` · `m` · `x` | With a row selected: done/reopen, edit, move, delete |
+| `[ done ]` `[ edit ]` `[ to project ]` `[ delete ]` | Buttons under the selected row, which is highlighted in whole. Keys `d` · `e` · `m` · `x` press them |
 | `p` · `s` | Adds a project or a session thread |
 | Tab, ↑/↓ | Walk the rows and buttons; clicking works too |
 
